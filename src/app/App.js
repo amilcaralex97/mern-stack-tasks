@@ -6,7 +6,8 @@ export default class App extends Component {
     this.state = {
       title: "",
       description: "",
-      tasks: []
+      tasks: [],
+      _id: ""
     };
     this.addTask = this.addTask.bind(this);
     this.handleChange = this.handleChange.bind(this);
@@ -19,25 +20,40 @@ export default class App extends Component {
   }
 
   addTask(e) {
-    fetch("/api/tasks", {
-      method: "POST",
-      body: JSON.stringify(this.state),
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
-        console.log(data);
-        M.toast({ html: "Task saved" });
-        this.setState({
-          title: "",
-          description: ""
-        });
-        this.fetchTasks();
+    if (this.state._id) {
+      fetch("/api/tasks/" + this.state._id, {
+        method: "PUT",
+        body: JSON.stringify(this.state),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
       })
-      .catch(err => console.log(err));
+        .then(res => res.json())
+        .then(data => {
+          console.log(data);
+          M.toast({ html: "Task updated" });
+          this.setState({ title: "", description: "", _id: "" });
+          this.fetchTasks();
+        });
+    } else {
+      fetch("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify(this.state),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log(data);
+          window.M.toast({ html: "Task Saved" });
+          this.setState({ title: "", description: "" });
+          this.fetchTasks();
+        })
+        .catch(err => console.error(err));
+    }
     e.preventDefault();
   }
 
@@ -53,13 +69,34 @@ export default class App extends Component {
   }
 
   deleteTask(id) {
-    fetch("api/tasks/" + id, {
-      method: "DELETE",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      }
-    });
+    if (confirm("Are you sure you want to delete it")) {
+      fetch("api/tasks/" + id, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log(data);
+          M.toast({ html: "Task deleted" });
+          this.fetchTasks();
+        });
+    }
+  }
+
+  editTask(id) {
+    fetch("api/tasks/" + id)
+      .then(res => res.json())
+      .then(data => {
+        console.log(data);
+        this.setState({
+          title: data.title,
+          description: data.description,
+          _id: data._id
+        });
+      });
   }
 
   handleChange(e) {
@@ -140,6 +177,7 @@ export default class App extends Component {
                           <button
                             className="btn light-green darken-4"
                             style={{ margin: "4px" }}
+                            onClick={() => this.editTask(task._id)}
                           >
                             <i className="material-icons">edit</i>
                           </button>
